@@ -1,0 +1,189 @@
+from torch.utils.data import Dataset
+from .loading_utils import *
+import torch
+import os
+import random
+from tqdm import tqdm
+import pandas as pd
+
+
+class TextAudioDataset(Dataset):
+    def __init__(self,
+                 annotations,
+                 target_n_samples,
+                 target_sr,
+                 return_audio = True,
+                 return_text = True,
+                 concept = None,
+                 return_full_audio = False,
+                 preextracted_features = False,
+                 truncate_preextracted = 50):
+        self.annotations = annotations
+        self.target_n_samples = target_n_samples
+        self.target_sr = target_sr
+        self.return_audio = return_audio
+        self.return_text = return_text
+        self.concept = concept
+        self.return_full_audio = return_full_audio
+        self.preextracted_features = preextracted_features
+        self.truncate_preextracted = truncate_preextracted
+        
+        # get unique file name indices and caption indices for annotations
+        annot_df = pd.DataFrame(annotations)
+        # get label index for each unique file name
+        
+        ## get the index for each unique file name in order of appearance
+        
+        try:
+            uniques = annot_df['file_path'].unique()
+            annot_df['file_index'] = annot_df['file_path'].apply(lambda x: np.where(uniques == x)[0][0])
+            
+            
+        except:
+            pass
+        
+        for i, annot in enumerate(annotations):
+            annot['file_index'] = annot_df.loc[i,'file_index']
+            # annot['caption_index'] = annot_df.loc[i,'caption_index']
+        
+        assert return_audio or return_text, "At least one of return_audio or return_text must be True (duh)"
+
+
+    def purge(self):
+        if self.return_audio:
+            raise NotImplementedError("Purging your audio dataset is probably a bad idea")
+        else:
+            file_paths = [annot['file_path'] for annot in self.annotations]
+            for file_path in file_paths:
+                os.remove(file_path)
+            print(f"Removed {len(file_paths)} files")
+        
+    def __len__(self):
+        return len(self.annotations)
+
+    def __getitem__(self, idx, return_full_audio = False, hop = None, verbose = False):
+        
+        
+        return_full_audio = self.return_full_audio if return_full_audio is None else return_full_audio
+        
+        annot = self.annotations[idx]
+        
+        
+        if self.return_audio:
+            if not self.preextracted_features:
+                audio = load_full_and_split(
+                    annot['file_path'],
+                    self.target_sr,
+                    self.target_n_samples,
+                    hop=hop,
+                    verbose=verbose
+                    ) if return_full_audio else load_audio_chunk(
+                    annot['file_path'],
+                    target_sr=self.target_sr,
+                    target_n_samples=self.target_n_samples,
+                    verbose=verbose
+                    )
+                audio = audio.mean(0,keepdim=True) if not return_full_audio else audio.mean(1,keepdim=True)
+            else:
+                try:
+                    file_path = annot['file_path'].replace('.mp3','.npy').replace('.wav','.npy')
+                    audio = np.load(file_path,mmap_mode='r')
+                    if audio.shape[0] > self.truncate_preextracted:
+                        rand_start = random.randint(0,audio.shape[0]-self.truncate_preextracted)
+                        audio = audio[rand_start:rand_start+self.truncate_preextracted]
+                        audio = torch.tensor(audio)
+                    else:
+                        return self[idx + 1]
+                except Exception as e:
+                    print(f"Error loading preextracted features: {e}") if verbose else None
+                    return self[idx + 1]
+        
+        if self.return_text:
+            possible_captions = annot['caption']
+            # ramdomly choose a caption hash
+            
+            random_hash = random.choice(list(possible_captions.keys()))
+        
+            caption = possible_captions[random_hash]
+            
+            if self.concept is not None:
+                
+                    assert self.concept in annot['concepts'], f"Concept {self.concept} not found in annotations"
+                
+                    concept_captions = annot['concepts'][self.concept]
+                    
+                    #check if the hash is in the captions
+                    if random_hash in concept_captions.keys():
+                        concept_caption = concept_captions[random_hash]
+                        pluscaption = random.choice(concept_caption['pluscaptions'])
+                        minuscaption = random.choice(concept_caption['minuscaptions'])
+                    else:
+                        print(f"Hash {random_hash} of caption {caption} not found in concept {self.concept} captions")
+                        return self.__getitem__(idx+1)
+                    
+        return_dict = {}
+        
+        if self.return_audio:
+            return_dict['audio'] = audio
+            
+        if self.return_text:
+            return_dict['prompt'] = caption
+            if self.concept is not None:
+                return_dict['plusprompt'] = pluscaption
+                return_dict['minusprompt'] = minuscaption
+                
+        return_dict['file_idx'] = annot['file_index']
+        # return_dict['caption_idx'] = annot['caption_index']
+        
+                
+        return return_dict
+    
+    
+    def extract_features(self, model, extract_method = 'extract_features', extract_kwargs = {}, out_key = 'embedding',hop = None, return_full_audio = True, verbose = False):
+        
+        device = next(model.parameters()).device
+        print(f"Extracting features with {extract_method} method on {device} device") if verbose else None
+        
+        for i in range(len(self)):
+            item = self.__getitem__(i, return_full_audio = return_full_audio, hop = hop, verbose = verbose)
+            file_path = self.annotations[i]['file_path'].replace('.mp3','.npy').replace('.wav','.npy')
+            
+            audio = item['audio'].squeeze().to(device)
+            
+            
+            audio_features = getattr(model, extract_method)(audio, **extract_kwargs)[out_key]
+            
+            print(f"Extracted features for {file_path}, shape: {audio_features.shape}") if verbose else None
+            
+            yield audio_features, file_path
+        
+    def extract_and_save_features(self, model, save_dir = None, extract_method = 'extract_features', extract_kwargs = {}, out_key = 'embedding', hop = None, return_full_audio = True, limit_n = None, verbose = False):
+        
+        
+        print(self.__len__())
+        
+        audio_features_all = []
+        counter = 0
+        
+        for audio_features, file_path in (pbar:= tqdm(self.extract_features(model, extract_method = extract_method, extract_kwargs = extract_kwargs, out_key = out_key, hop = hop, return_full_audio = return_full_audio, verbose = verbose))):
+            
+            
+            
+            if save_dir is not None:
+                pbar.set_description(f"Saving features for {file_path}, shape: {audio_features.shape}")
+            
+                save_path = os.path.join(save_dir, file_path)
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                if os.path.exists(save_path):
+                    os.remove(save_path)
+                np.save(save_path, audio_features.detach().cpu().numpy())
+                
+            audio_features_all.append(audio_features.detach().cpu())
+            
+            counter += 1
+            if limit_n and counter >= limit_n:
+                break
+        try:   
+            return torch.stack(audio_features_all)
+        except:
+            return None

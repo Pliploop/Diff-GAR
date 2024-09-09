@@ -32,6 +32,12 @@ MANIFEST
 *.manifest
 *.spec
 
+esc50/*
+wandb/*
+
+*.ipynb
+*.pt
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
