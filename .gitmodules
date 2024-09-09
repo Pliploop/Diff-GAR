@@ -1,0 +1,6 @@
+[submodule "diffgar/models/clap"]
+	path = diffgar/models/clap
+	url = https://github.com/LAION-AI/CLAP.git
+[submodule "diffgar/models/tango"]
+	path = diffgar/models/tango
+	url = https://github.com/Pliploop/tango.git
