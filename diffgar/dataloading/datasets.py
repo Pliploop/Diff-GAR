@@ -29,28 +29,28 @@ class TextAudioDataset(Dataset):
         self.truncate_preextracted = truncate_preextracted
         
         # get unique file name indices and caption indices for annotations
-        annot_df = pd.DataFrame(annotations)
+        # annot_df = pd.DataFrame(annotations)
         # get label index for each unique file name
         
         ## get the index for each unique file name in order of appearance
         
-        try:
-            uniques = annot_df['file_path'].unique()
-            annot_df['file_index'] = annot_df['file_path'].apply(lambda x: np.where(uniques == x)[0][0])
+        # try:
+        #     uniques = annot_df['file_path'].unique()
+        #     annot_df['file_index'] = annot_df['file_path'].apply(lambda x: np.where(uniques == x)[0][0])
             
             
-        except:
-            pass
+        # except:
+        #     pass
         
-        for i, annot in enumerate(annotations):
-            annot['file_index'] = annot_df.loc[i,'file_index']
+        # for i, annot in enumerate(annotations):
+        #     annot['file_index'] = annot_df.loc[i,'file_index']
             # annot['caption_index'] = annot_df.loc[i,'caption_index']
         
         assert return_audio or return_text, "At least one of return_audio or return_text must be True (duh)"
 
 
     def purge(self):
-        if self.return_audio:
+        if self.return_audio and not self.preextracted_features:
             raise NotImplementedError("Purging your audio dataset is probably a bad idea")
         else:
             file_paths = [annot['file_path'] for annot in self.annotations]
@@ -125,6 +125,7 @@ class TextAudioDataset(Dataset):
         
         if self.return_audio:
             return_dict['audio'] = audio
+            return_dict['file_path'] = annot['file_path']
             
         if self.return_text:
             return_dict['prompt'] = caption
@@ -132,9 +133,8 @@ class TextAudioDataset(Dataset):
                 return_dict['plusprompt'] = pluscaption
                 return_dict['minusprompt'] = minuscaption
                 
-        return_dict['file_idx'] = annot['file_index']
-        # return_dict['caption_idx'] = annot['caption_index']
-        
+        # return_dict['file_idx'] = annot['file_index']
+
                 
         return return_dict
     

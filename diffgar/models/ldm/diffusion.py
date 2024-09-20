@@ -493,14 +493,36 @@ class LightningDiffGar(DiffGarLDM,LightningModule):
     def training_step(self, batch, batch_idx):
         audio = batch['audio']
         prompt = batch['prompt']
+        file_path  = batch['file_path']
+        
+        prompt_path = zip(prompt, file_path)
+        # print prompt path tuples
+        # for p, f in prompt_path:
+        #     print(f'Prompt: {p}, File: {f}') if self.first_run else None
+            
+        
         
         if not self.preextracted_latents:
             latents = self.encoder_pair.get_audio_embedding_from_data(audio)
         else:
             latents = audio
             
+        
+        # text_embeds = self.encoder_pair.get_text_embedding(prompt)['projected_pooler_output']
+        
+        # # print(prompt)
+        # # print(text_embeds)
+        
+        # sims = latents @ text_embeds.t()
+        
+        # sims = sims.max(dim=1).values
+        # print(sims)
+        
+        # raise ValueError("Stopping after computing similarities")
+        
         latents = latents.permute(0,2,1)
         loss = self(latents, prompt)
+        
         
         
         
@@ -518,6 +540,9 @@ class LightningDiffGar(DiffGarLDM,LightningModule):
             print(f'Generated samples of shape {preds.shape}') if self.first_run else None
             print(f'Ground truth samples of shape {latents.shape}') if self.first_run else None
             
+            
+            
+            
             print(f"Computing CLAP score") if self.first_run else None
             gt_clap = self.encoder_pair.get_clap_score(latents, prompt, latents = True)['CLAP_Score']
             print(f"Ground truth CLAP score: {gt_clap}") if self.first_run else None
@@ -526,6 +551,8 @@ class LightningDiffGar(DiffGarLDM,LightningModule):
             print(f"Generated CLAP score: {pred_clap}") if self.first_run else None
             self.log('gt_clap', gt_clap, on_step=True, on_epoch=True, prog_bar=True)
             self.log('pred_clap', pred_clap, on_step=True, on_epoch=True, prog_bar=True)
+            
+            # raise ValueError("Stopping after generating samples")
             
         if self.scheduler is not None:
             self.scheduler.step()

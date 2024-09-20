@@ -117,7 +117,7 @@ if __name__ == "__main__":
         print("logging")
 
     try:
-        if not os.path.exists(os.path.join(ckpt_path, experiment_name)):
+        if not os.path.exists(os.path.join(ckpt_path, experiment_name)) and 's3:' not in ckpt_path:
             os.makedirs(os.path.join(ckpt_path, experiment_name))
     except:
         pass

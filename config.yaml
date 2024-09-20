@@ -3,8 +3,7 @@ seed_everything: 123
 trainer:
   accelerator: auto
   strategy: auto
-  devices:
-  - 3
+  devices: auto
   num_nodes: 1
   precision: null
   logger: null
@@ -116,7 +115,7 @@ data:
   concept: null
   target_n_samples: 96000
   target_sr: 48000
-  batch_size: 32
+  batch_size: 64
   num_workers: 4
   preextracted_features: true
   truncate_preextracted: 64
