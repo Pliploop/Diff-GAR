@@ -1,9 +1,10 @@
 # pytorch_lightning==2.1.0
-seed_everything: 123
+seed_everything: 42
 trainer:
   accelerator: auto
   strategy: auto
-  devices: auto
+  devices:
+  - 6
   num_nodes: 1
   precision: null
   logger: null
@@ -83,6 +84,8 @@ model:
     use_classifier_free_guidance: true
     embedding_max_length: 77
     resnet_groups: 2
+    classifier_free_guidance_strength: 1
+    infer_classifier_free_guidance_strength: 0.3
   unet_ckpt: null
   snr_gamma: null
   freeze_encoder_pair: true
@@ -115,11 +118,11 @@ data:
   concept: null
   target_n_samples: 96000
   target_sr: 48000
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
   preextracted_features: true
   truncate_preextracted: 64
-log: 'true'
+log: false
 log_model: false
 ckpt_path: s3://maml-aimcdt/storage/julien/DiffGAR/training
 resume_id: null

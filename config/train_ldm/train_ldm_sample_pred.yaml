@@ -1,5 +1,5 @@
 # pytorch_lightning: : 2.1.0
-seed_everything: 123
+seed_everything: 42
 trainer:
   accelerator: auto
   strategy: auto
@@ -63,6 +63,8 @@ model:
     use_classifier_free_guidance: True
     embedding_max_length: 77
     resnet_groups :  2
+    classifier_free_guidance_strength: 1
+    infer_classifier_free_guidance_strength: 0.3
   preextracted_latents: true
   optimizer: 
     class_path: torch.optim.AdamW

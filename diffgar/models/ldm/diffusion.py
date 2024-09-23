@@ -293,10 +293,14 @@ class DiffGarLDM(nn.Module):
         assert latents.shape == noisy_latents.shape, "Latents and noisy latents shape mismatch"
         assert latents.shape == target.shape, "Latents and target shape mismatch"
         
+        if self.unet_model_config['classifier_free_guidance_strength'] is not None:
+            guidance_scale = self.unet_model_config['classifier_free_guidance_strength']
+        else:
+            guidance_scale = None
         
         if self.set_from == "random":
             model_pred = self.unet(
-                noisy_latents, time = timesteps, embedding = encoder_hidden_states
+                noisy_latents, time = timesteps, embedding = encoder_hidden_states, embedding_scale = guidance_scale
             )
 
         # elif self.set_from == "pre-trained":
@@ -325,46 +329,47 @@ class DiffGarLDM(nn.Module):
         return loss
 
     @torch.no_grad()
-    def inference(self, prompt, inference_scheduler, num_steps=20, guidance_scale=3, num_samples_per_prompt=1, 
+    def inference(self, prompt, inference_scheduler, num_steps=20, guidance_scale=None, num_samples_per_prompt=1, 
                   disable_progress=True, slider = None, slider_scale = 0):
         device = next(self.parameters()).device
-        classifier_free_guidance = guidance_scale > 1.0
+        classifier_free_guidance = guidance_scale is not None
         batch_size = len(prompt) * num_samples_per_prompt
 
-        if classifier_free_guidance:
-            encoded_text,uncond_encoded_text = self.encode_text_classifier_free(prompt, num_samples_per_prompt)
+        # if classifier_free_guidance:
+        #     encoded_text,uncond_encoded_text = self.encode_text_classifier_free(prompt, num_samples_per_prompt)
             
-            prompt_embeds, boolean_prompt_mask, subject_mask = encoded_text['last_hidden_state'], encoded_text['attention_mask'], encoded_text.get('subject_masks', None)
-            uncond_prompt_embeds, uncond_boolean_prompt_mask, _ = uncond_encoded_text['last_hidden_state'], uncond_encoded_text['attention_mask'], uncond_encoded_text.get('subject_masks', None)
+        #     prompt_embeds, boolean_prompt_mask, subject_mask = encoded_text['last_hidden_state'], encoded_text['attention_mask'], encoded_text.get('subject_masks', None)
+        #     # uncond_prompt_embeds, uncond_boolean_prompt_mask, _ = uncond_encoded_text['last_hidden_state'], uncond_encoded_text['attention_mask'], uncond_encoded_text.get('subject_masks', None)
             
-            if slider and subject_mask:
-                prompt_embeds = slider.apply(prompt_embeds,boolean_prompt_mask, scale = slider_scale)
-                uncond_prompt_embeds = slider.apply(uncond_prompt_embeds,uncond_boolean_prompt_mask, scale = slider_scale)
+        #     if slider and subject_mask:
+        #         prompt_embeds = slider.apply(prompt_embeds,boolean_prompt_mask, scale = slider_scale)
+        #         # uncond_prompt_embeds = slider.apply(uncond_prompt_embeds,uncond_boolean_prompt_mask, scale = slider_scale)
                 
-            prompt_embeds = prompt_embeds.repeat_interleave(num_samples_per_prompt, 0)
-            boolean_prompt_mask = boolean_prompt_mask.repeat_interleave(num_samples_per_prompt, 0)
-            uncond_prompt_embeds = uncond_prompt_embeds.repeat_interleave(num_samples_per_prompt, 0)
-            uncond_boolean_prompt_mask = uncond_boolean_prompt_mask.repeat_interleave(num_samples_per_prompt, 0)
+        #     prompt_embeds = prompt_embeds.repeat_interleave(num_samples_per_prompt, 0)
+        #     boolean_prompt_mask = boolean_prompt_mask.repeat_interleave(num_samples_per_prompt, 0)
+        #     uncond_prompt_embeds = uncond_prompt_embeds.repeat_interleave(num_samples_per_prompt, 0)
+        #     uncond_boolean_prompt_mask = uncond_boolean_prompt_mask.repeat_interleave(num_samples_per_prompt, 0)
             
             
             
-            prompt_embeds = torch.cat([uncond_prompt_embeds, prompt_embeds])
-            boolean_prompt_mask = torch.cat([uncond_boolean_prompt_mask, boolean_prompt_mask])
+        #     # prompt_embeds = torch.cat([uncond_prompt_embeds, prompt_embeds])
+        #     # boolean_prompt_mask = torch.cat([uncond_boolean_prompt_mask, boolean_prompt_mask])
             
-            boolean_prompt_mask = (boolean_prompt_mask == 1).to(device)
-            
-        else:
-            encoded_text = self.encode_text(prompt)
-            
-            prompt_embeds = encoded_text['last_hidden_state']
-            boolean_prompt_mask = encoded_text['attention_mask']
-            subject_mask = encoded_text.get('subject_masks', None)
-            
-            if slider and subject_mask:
-                prompt_embeds = slider.apply(prompt_embeds,subject_mask, scale = slider_scale)
-            
-            prompt_embeds = prompt_embeds.repeat_interleave(num_samples_per_prompt, 0)
-            boolean_prompt_mask = boolean_prompt_mask.repeat_interleave(num_samples_per_prompt, 0)
+        #     boolean_prompt_mask = (boolean_prompt_mask == 1).to(device)
+        # else:
+        encoded_text = self.encode_text(prompt)
+        
+        prompt_embeds = encoded_text['last_hidden_state']
+        boolean_prompt_mask = encoded_text['attention_mask']
+        subject_mask = encoded_text.get('subject_masks', None)
+        
+        if slider and subject_mask:
+            prompt_embeds = slider.apply(prompt_embeds,subject_mask, scale = slider_scale)
+        
+        prompt_embeds = prompt_embeds.repeat_interleave(num_samples_per_prompt, 0)
+        boolean_prompt_mask = boolean_prompt_mask.repeat_interleave(num_samples_per_prompt, 0)
+
+        boolean_prompt_mask = (boolean_prompt_mask == 1).to(device)
 
         inference_scheduler.set_timesteps(num_steps, device=device)
         timesteps = inference_scheduler.timesteps
@@ -374,10 +379,16 @@ class DiffGarLDM(nn.Module):
 
         num_warmup_steps = len(timesteps) - num_steps * inference_scheduler.order
         progress_bar = tqdm(range(num_steps), disable=disable_progress)
+        
+        if self.unet_model_config['infer_classifier_free_guidance_strength'] is not None:
+            guidance_scale = self.unet_model_config['infer_classifier_free_guidance_strength']
+        else:
+            guidance_scale = guidance_scale
 
         for i, t in enumerate(timesteps):
             # expand the latents if we are doing classifier free guidance
-            latent_model_input = torch.cat([latents] * 2) if classifier_free_guidance else latents
+            # latent_model_input = torch.cat([latents] * 2) if classifier_free_guidance else latents
+            latent_model_input = latents
             latent_model_input = inference_scheduler.scale_model_input(latent_model_input, t)
 
             # expand t to batch size
@@ -385,13 +396,13 @@ class DiffGarLDM(nn.Module):
             time = torch.full((bsz,), t, dtype=torch.long, device=device)
 
             noise_pred = self.unet(
-                latent_model_input, time = time, embedding=prompt_embeds
-            )
+                latent_model_input, time = time, embedding=prompt_embeds, embedding_scale=guidance_scale
+            ).chunk(2, dim=0)[0]
 
             # perform guidance
-            if classifier_free_guidance:
-                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+            # if classifier_free_guidance:
+            #     noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+            #     noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
             latents = inference_scheduler.step(noise_pred, t, latents).prev_sample
@@ -533,7 +544,7 @@ class LightningDiffGar(DiffGarLDM,LightningModule):
         
         if self.global_step % 2000 == 0 and self.gen_examples:
             print(f"Generating some samples")
-            preds = self.inference(prompt, self.inference_scheduler, num_steps = 50, disable_progress = False)
+            preds = self.inference(prompt, self.inference_scheduler, num_steps = 50, disable_progress = False, guidance_scale = self.unet_model_config['infer_classifier_free_guidance_strength'])
             
             preds,latents = preds.permute(0,2,1), latents.permute(0,2,1)
             

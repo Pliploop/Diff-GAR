@@ -65,7 +65,9 @@ class UNet(nn.Module):
         modulation_features: int = 1024,
         embedding_max_length: int = 0,
         use_classifier_free_guidance: bool = False,
+        classifier_free_guidance_strength: float = 1.0,
         out_channels: Optional[int] = None,
+        **kwargs
     ):
         
         super().__init__()
@@ -97,11 +99,14 @@ class UNet(nn.Module):
             modulation_features=modulation_features,
             resnet_groups=resnet_groups
         )
-        
+        self.cfg_strength = classifier_free_guidance_strength
     @classmethod
     def from_config(cls, config):
         return cls(**config)
     
-    def forward(self,x,time = None, embedding = None):
-        return self.unet(x,time = time,embedding = embedding)
+    def forward(self,x,time = None, embedding = None, embedding_scale = None):
+        
+        embedding_scale = self.cfg_strength if embedding_scale is None else embedding_scale
+        
+        return self.unet(x,time = time,embedding = embedding, embedding_scale = embedding_scale)
         
