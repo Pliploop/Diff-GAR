@@ -9,15 +9,15 @@ from sklearn.model_selection import train_test_split
 
 def get_song_describer_annotations(data_path = None, val_split = 0.1):
     
-    data_path = data_path or '/import/research_c4dm/jpmg86/song-describer/data'
+    data_path = data_path or '/import/research_c4dm/jpmg86/song-describer/data/audio'
     
-    csv_path = os.path.join(data_path, 'song_describer.csv')
+    csv_path = os.path.join(os.path.dirname(data_path), 'song_describer.csv')
     
     df = pd.read_csv(csv_path)
     
     
     df = df[['path','caption','is_valid_subset']].rename(columns = {'path':'file_path'})
-    df['file_path'] = os.path.join(data_path,'audio') + '/' + df['file_path']
+    df['file_path'] = os.path.join(data_path) + '/' + df['file_path']
     #replace .mp3 with .2min.mp3
     df['file_path'] = df['file_path'].apply(lambda x: x.replace('.mp3','.2min.mp3'))
     
@@ -46,7 +46,7 @@ def get_song_describer_annotations(data_path = None, val_split = 0.1):
 
 class TextAudioDataModule(LightningDataModule):
     
-    def __init__(self, task, task_kwargs = {}, return_audio = True, return_text = True, concept = None, target_n_samples = 96000, target_sr = 48000, batch_size = 32, num_workers = 0, preextracted_features = False, truncate_preextracted = 50):
+    def __init__(self, task, task_kwargs = {}, return_audio = True, return_text = True, concept = None, target_n_samples = 96000, target_sr = 48000, batch_size = 32, num_workers = 0, preextracted_features = False, truncate_preextracted = 50, root_dir = None, new_dir = None):
 
 
         super().__init__()
@@ -63,7 +63,9 @@ class TextAudioDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.preextracted_features = preextracted_features
         self.truncate_preextracted = truncate_preextracted
-       
+        
+        self.root_dir = root_dir
+        self.new_dir = new_dir # for when the dataset was extracted to a new directory
 
 
         # do some cleaning : we want to return a list of dictionary records.
@@ -85,9 +87,9 @@ class TextAudioDataModule(LightningDataModule):
         ##  
         
     def setup(self, stage: str) -> None:
-        self.train_dataset = TextAudioDataset(annotations=self.train_annotations, target_n_samples=self.target_n_samples, target_sr=self.target_sr, return_audio=self.return_audio, return_text=self.return_text, concept=self.concept, preextracted_features=self.preextracted_features, truncate_preextracted=self.truncate_preextracted)
-        self.val_dataset = TextAudioDataset(annotations=self.val_annotations, target_n_samples=self.target_n_samples, target_sr=self.target_sr, return_audio=self.return_audio, return_text=self.return_text, concept=self.concept, preextracted_features=self.preextracted_features, truncate_preextracted=self.truncate_preextracted)
-        self.test_dataset = TextAudioDataset(annotations=self.test_annotations, target_n_samples=self.target_n_samples, target_sr=self.target_sr, return_audio=self.return_audio, return_text=self.return_text, concept=self.concept, preextracted_features=self.preextracted_features, truncate_preextracted=self.truncate_preextracted)
+        self.train_dataset = TextAudioDataset(annotations=self.train_annotations, target_n_samples=self.target_n_samples, target_sr=self.target_sr, return_audio=self.return_audio, return_text=self.return_text, concept=self.concept, preextracted_features=self.preextracted_features, truncate_preextracted=self.truncate_preextracted, root_dir=self.root_dir, new_dir=self.new_dir)
+        self.val_dataset = TextAudioDataset(annotations=self.val_annotations, target_n_samples=self.target_n_samples, target_sr=self.target_sr, return_audio=self.return_audio, return_text=self.return_text, concept=self.concept, preextracted_features=self.preextracted_features, truncate_preextracted=self.truncate_preextracted, root_dir=self.root_dir, new_dir=self.new_dir)
+        self.test_dataset = TextAudioDataset(annotations=self.test_annotations, target_n_samples=self.target_n_samples, target_sr=self.target_sr, return_audio=self.return_audio, return_text=self.return_text, concept=self.concept, preextracted_features=self.preextracted_features, truncate_preextracted=self.truncate_preextracted, root_dir=self.root_dir, new_dir=self.new_dir)
         
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)

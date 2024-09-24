@@ -90,9 +90,9 @@ class DiffGarLDM(nn.Module):
         print(f"Diffusion model initialized with scheduler {self.noise_scheduler}")
 
 
-        assert self.unet_model_config is not None, "UNet model config is required"
+        # assert self.unet_model_config is not None, "UNet model config is required"
         
-        self.unet = UNet.from_config(self.unet_model_config)
+        self.unet = UNet.from_config(self.unet_model_config) if self.unet_model_config is not None else None
         self.set_from = "random"
         print("UNet initialized randomly.")
 
