@@ -47,6 +47,7 @@ model:
   encoder_pair_kwargs:
     enable_fusion: false
     amodel: HTSAT-base
+    device: cpu #just for init then sent to the right device
   encoder_pair_ckpt: 'diffgar/models/pretrained_ckpt/CLAP/music_audioset_epoch_15_esc_90.14.pt'
   unet_model_config:
     dim: 1
@@ -63,8 +64,8 @@ model:
     use_classifier_free_guidance: True
     embedding_max_length: 77
     resnet_groups :  2
-    classifier_free_guidance_strength: 1
-    infer_classifier_free_guidance_strength: 0.3
+    classifier_free_guidance_strength: .5 # for training, masking (higher = more masking)
+    infer_classifier_free_guidance_strength: 3 # for inference, interpolation
   preextracted_latents: true
   optimizer: 
     class_path: torch.optim.AdamW

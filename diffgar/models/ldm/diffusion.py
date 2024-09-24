@@ -259,10 +259,11 @@ class DiffGarLDM(nn.Module):
             scales = torch.rand(bsz) * 2 - 1
             encoder_hidden_states = self.slider.apply(encoder_hidden_states, subject_mask, scale = scales)
         
-        if self.uncondition:
-            mask_indices = [k for k in range(len(prompt)) if random.random() < 0.1]
-            if len(mask_indices) > 0:
-                encoder_hidden_states[mask_indices] = 0
+        # if self.uncondition:
+        #     mask_indices = [k for k in range(len(prompt)) if random.random() < 0.1]
+        #     if len(mask_indices) > 0:
+        #         encoder_hidden_states[mask_indices] = 0
+        #the above is cfg masking, not sure if it is needed here
 
 
         if validation_mode:
@@ -300,7 +301,7 @@ class DiffGarLDM(nn.Module):
         
         if self.set_from == "random":
             model_pred = self.unet(
-                noisy_latents, time = timesteps, embedding = encoder_hidden_states, embedding_scale = guidance_scale
+                noisy_latents, time = timesteps, embedding = encoder_hidden_states, embedding_mask_proba = guidance_scale, embedding_scale = 1.0
             )
 
         # elif self.set_from == "pre-trained":
@@ -332,7 +333,6 @@ class DiffGarLDM(nn.Module):
     def inference(self, prompt, inference_scheduler, num_steps=20, guidance_scale=None, num_samples_per_prompt=1, 
                   disable_progress=True, slider = None, slider_scale = 0):
         device = next(self.parameters()).device
-        classifier_free_guidance = guidance_scale is not None
         batch_size = len(prompt) * num_samples_per_prompt
 
         # if classifier_free_guidance:
@@ -396,8 +396,8 @@ class DiffGarLDM(nn.Module):
             time = torch.full((bsz,), t, dtype=torch.long, device=device)
 
             noise_pred = self.unet(
-                latent_model_input, time = time, embedding=prompt_embeds, embedding_scale=guidance_scale
-            ).chunk(2, dim=0)[0]
+                latent_model_input, time = time, embedding=prompt_embeds, embedding_scale=guidance_scale, embedding_mask_proba=0
+            )
 
             # perform guidance
             # if classifier_free_guidance:
