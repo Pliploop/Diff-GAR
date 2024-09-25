@@ -7,11 +7,10 @@ import os
 from sklearn.model_selection import train_test_split
 
 
-def get_song_describer_annotations(data_path = None, val_split = 0.1):
+def get_song_describer_annotations(data_path = None, csv_path = None, val_split = 0.1):
     
-    data_path = data_path or '/import/research_c4dm/jpmg86/song-describer/data/audio'
-    
-    csv_path = os.path.join(os.path.dirname(data_path), 'song_describer.csv')
+    data_path = data_path if data_path is not None else '/import/research_c4dm/jpmg86/song-describer/data/audio'
+    csv_path = os.path.join(os.path.dirname(data_path), 'song_describer.csv') if csv_path is None else csv_path
     
     df = pd.read_csv(csv_path)
     

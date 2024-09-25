@@ -34,11 +34,7 @@ class LoggerSaveConfigCallback(SaveConfigCallback):
                 
                 print(f"Uploading config to s3://{bucket}/{key}")
                 
-                # raise NotImplementedError("S3 upload is not implemented yet")
-                
-                
                 s3_client = boto3.client('s3')
-                # copy the config file to the s3 bucket
                 try:
                     s3_client.upload_file(self.config_filename, bucket, key)
                 except NoCredentialsError:
@@ -48,8 +44,8 @@ class LoggerSaveConfigCallback(SaveConfigCallback):
                 with open(os.path.join(os.path.join(self.config['ckpt_path'], experiment_name), "config.yaml"), 'w') as outfile:
                     yaml.dump(config, outfile, default_flow_style=False)
                 
-            # Instantiate a ModelCheckpoint saving the model every epoch
-            
+            # remove local config file
+            os.remove(self.config_filename)
             
             
 
