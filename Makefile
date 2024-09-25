@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-TAG_TRAINING := 427750820708.dkr.ecr.us-east-1.amazonaws.com/diffgar:latest
+TAG_TRAINING := 427750820708.dkr.ecr.us-east-1.amazonaws.com/diffgar/training
 
 build-train:  ## Build the Docker image to train on AWS
 	docker build \

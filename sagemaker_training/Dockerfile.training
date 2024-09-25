@@ -17,10 +17,11 @@ RUN apt-get -y update \
 
 # Install virtual environment
 ARG REQ=requirements.txt
-COPY ./sagemaker_training/$REQ $LOCAL_DIR/$REQ
+COPY ./$REQ $LOCAL_DIR/$REQ
 RUN --mount=type=secret,id=github_token \
     export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
     pip install --no-cache-dir -r $LOCAL_DIR/$REQ
+
 
 # Copy script(s) –- The following lines are necessary because sagemaker uses these scripts as entry points
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
