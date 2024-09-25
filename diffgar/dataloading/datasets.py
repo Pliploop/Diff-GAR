@@ -7,6 +7,7 @@ from tqdm import tqdm
 import pandas as pd
 
 
+
 class TextAudioDataset(Dataset):
     def __init__(self,
                  annotations,
@@ -17,7 +18,9 @@ class TextAudioDataset(Dataset):
                  concept = None,
                  return_full_audio = False,
                  preextracted_features = False,
-                 truncate_preextracted = 50):
+                 truncate_preextracted = 50,
+                 root_dir = None,
+                 new_dir = None):
         self.annotations = annotations
         self.target_n_samples = target_n_samples
         self.target_sr = target_sr
@@ -45,6 +48,10 @@ class TextAudioDataset(Dataset):
         # for i, annot in enumerate(annotations):
         #     annot['file_index'] = annot_df.loc[i,'file_index']
             # annot['caption_index'] = annot_df.loc[i,'caption_index']
+            
+        if root_dir is not None and new_dir is not None:
+            for annot in annotations:
+                annot['file_path'] = annot['file_path'].replace(root_dir, new_dir)
         
         assert return_audio or return_text, "At least one of return_audio or return_text must be True (duh)"
 
@@ -157,7 +164,7 @@ class TextAudioDataset(Dataset):
             
             yield audio_features, file_path
         
-    def extract_and_save_features(self, model, save_dir = None, extract_method = 'extract_features', extract_kwargs = {}, out_key = 'embedding', hop = None, return_full_audio = True, limit_n = None, verbose = False):
+    def extract_and_save_features(self, model, save_dir = None, extract_method = 'extract_features', extract_kwargs = {}, out_key = 'embedding', hop = None, return_full_audio = True, limit_n = None, save = False, verbose = True, root_path = None):
         
         
         print(self.__len__())
@@ -165,18 +172,57 @@ class TextAudioDataset(Dataset):
         audio_features_all = []
         counter = 0
         
+        save_dir = '' if save_dir is None else save_dir
+        
+        if 's3://' in save_dir:
+            import boto3
+            import io
+            client = boto3.client('s3')
+        
+        
         for audio_features, file_path in (pbar:= tqdm(self.extract_features(model, extract_method = extract_method, extract_kwargs = extract_kwargs, out_key = out_key, hop = hop, return_full_audio = return_full_audio, verbose = verbose))):
             
+            # print(file_path, root_path, save_dir)
             
+            if root_path is not None:
+                file_path = file_path.replace(root_path+'/','')
+
+            save_path = os.path.join(save_dir, file_path)
             
-            if save_dir is not None:
-                pbar.set_description(f"Saving features for {file_path}, shape: {audio_features.shape}")
-            
-                save_path = os.path.join(save_dir, file_path)
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                if os.path.exists(save_path):
-                    os.remove(save_path)
-                np.save(save_path, audio_features.detach().cpu().numpy())
+            if save:
+                
+
+                #remove the root path from the file path
+                
+                
+                if 's3://' in save_dir:
+                    bucket, key = save_dir.replace("s3://", "").split("/", 1)
+                    key = f"{key}/{file_path}"
+                    
+                    # local_path = os.path.join(local_temp_dir, file_path)
+                    # os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                    # np.save(local_path, audio_features.detach().cpu().numpy())
+                    
+                    pbar.set_description(f"Uploading features to s3://{bucket}/{key}") if verbose else None
+                    try:
+                        # client.upload_file(save_path, bucket, key)
+                        
+                        buffer = io.BytesIO()
+                        np.save(buffer, audio_features.detach().cpu().numpy())
+                        buffer.seek(0)
+                        client.put_object(Bucket=bucket, Key=key, Body=buffer)
+                    except Exception as e:
+                        print(f"Error uploading to s3: {e}") if verbose else None
+                        
+                    # os.remove(local_path)
+                else:
+                    pbar.set_description(f"Saving features in {save_path}, shape: {audio_features.shape}")
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    if os.path.exists(save_path):
+                        os.remove(save_path)
+                    np.save(save_path, audio_features.detach().cpu().numpy())
+                
+                
                 
             audio_features_all.append(audio_features.detach().cpu())
             
@@ -184,6 +230,11 @@ class TextAudioDataset(Dataset):
             if limit_n and counter >= limit_n:
                 break
         try:   
-            return torch.stack(audio_features_all)
+            print(f"Returning {len(audio_features_all)} features") if verbose else None
+            all_= torch.stack(audio_features_all)
+            print(f"Stacked features, shape: {all_.shape}") if verbose else None
+            return all_
+        
+        
         except:
             return None

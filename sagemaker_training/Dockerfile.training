@@ -22,16 +22,19 @@ RUN --mount=type=secret,id=github_token \
     export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
     pip install --no-cache-dir -r $LOCAL_DIR/$REQ
 
+#set a new env variable
+ENV TOKENIZERS_PARALLELISM=false
 
 # Copy script(s) –- The following lines are necessary because sagemaker uses these scripts as entry points
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
+
 # The next line makes the script callable with `train` instead of `./train`
 ENV PATH="$PATH:$LOCAL_DIR"
 
 # Copy code
 COPY ./diffgar $LOCAL_DIR/diffgar
-COPY ./config.yaml $LOCAL_DIR/config.yaml
 COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
+COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
 
 # Set working directory to /opt/ml/code
 WORKDIR $LOCAL_DIR

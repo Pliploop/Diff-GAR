@@ -81,3 +81,6 @@ def launch_sagemaker_training(cfg: dict):
     # RUN!
     logging.info("Start the training!")
     estimator.fit(inputs=inputs, logs="All", job_name=job_name)
+    
+    
+    
