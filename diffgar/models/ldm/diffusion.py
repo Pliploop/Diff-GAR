@@ -1,4 +1,3 @@
-import random
 from tqdm import tqdm
 
 import torch

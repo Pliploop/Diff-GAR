@@ -12,6 +12,8 @@ build-train:  ## Build the Docker image to train on AWS
 push-train:  ## Push the training Docker image to AWS; must build it first
 	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 427750820708.dkr.ecr.us-east-1.amazonaws.com
 	docker push ${TAG_TRAINING}
+	docker image prune -f
+
 
 build-and-push-train: build-train push-train  ## First build then push the training image
 
