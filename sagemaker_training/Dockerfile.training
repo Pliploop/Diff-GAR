@@ -1,40 +1,71 @@
-FROM pytorch/pytorch:2.4.1-cuda11.8-cudnn9-runtime
+# FROM pytorch/pytorch:2.4.1-cuda11.8-cudnn9-runtime
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+# FROM pytorch/conda-builder:cuda11.8
 
 ARG LOCAL_DIR=/opt/ml/code
 
-# Install essentials. The weird command fixes a hash sum mismatch error on Macs
+# # Install essentials and fix hash sum mismatch errors on Macs
 RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
     echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
-    echo "Acquire::BrokenProxy    true;" >> /etc/apt/apt.conf.d/99custom
-RUN apt-get -y update \
-    && apt-get -y upgrade \
-    && apt-get install -y --fix-missing --no-install-recommends \
+    echo "Acquire::BrokenProxy true;" >> /etc/apt/apt.conf.d/99custom
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --fix-missing --no-install-recommends \
         curl \
         unzip \
         jq \
         git \
-    && rm -rf /var/lib/apt/lists/*
+        wget && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install virtual environment
+# # Install Conda if it's not already installed
+# # RUN if [ ! -d "/opt/conda" ]; then \
+# #         wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+# #         bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+# #         rm Miniconda3-latest-Linux-x86_64.sh && \
+# #         /opt/conda/bin/conda clean -tipsy; \
+# #     else \
+# #         echo "Conda is already installed"; \
+# #     fi
+
+# # # Set Conda in the path
+# ENV PATH /opt/conda/bin:$PATH
+
+# # # Create Conda environment with Python 3.9
+# # RUN /opt/conda/bin/conda create -n diffgar python=3.9.18 -y
+
+# # # Use the Conda environment for subsequent commands
+# # SHELL ["conda", "run", "-n", "diffgar", "/bin/bash", "-c"]
+
+
+# #switch the base conda environment to python 3.9.18
+# RUN conda install python=3.9.18 -y
+
+# # Install pip in the environment
+# RUN conda install -c conda-forge pip -y
+
+# # Copy the requirements and install dependencies with pip
 ARG REQ=requirements.txt
 COPY ./$REQ $LOCAL_DIR/$REQ
 RUN --mount=type=secret,id=github_token \
     export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
-    pip install --no-cache-dir -r $LOCAL_DIR/$REQ
+    pip install --no-cache-dir --no-dependencies -r $LOCAL_DIR/$REQ
 
-#set a new env variable
-ENV TOKENIZERS_PARALLELISM=false
+RUN apt-get update && apt-get install -y libsndfile1
 
-# Copy script(s) –- The following lines are necessary because sagemaker uses these scripts as entry points
+
+# # Copy SageMaker training script
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
 
-# The next line makes the script callable with `train` instead of `./train`
-ENV PATH="$PATH:$LOCAL_DIR"
-
-# Copy code
+# # Copy project code
 COPY ./diffgar $LOCAL_DIR/diffgar
 COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
 COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
 
-# Set working directory to /opt/ml/code
+# # Make 'train' script callable directly from the command line
+ENV PATH="$PATH:$LOCAL_DIR"
+
+# # Disable tokenizers parallelism for compatibility
+ENV TOKENIZERS_PARALLELISM=false
+
+# # Set working directory
 WORKDIR $LOCAL_DIR
