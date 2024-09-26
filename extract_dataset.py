@@ -2,7 +2,6 @@ from diffgar.dataloading.dataloaders import TextAudioDataModule
 from diffgar.models.ldm.diffusion import LightningDiffGar
 from diffgar.dataloading.dataloaders import TextAudioDataModule
 from pytorch_lightning.cli import SaveConfigCallback, LightningCLI
-import yaml
 import os
 from jsonargparse import lazy_instance
 from pytorch_lightning.strategies import DDPStrategy
