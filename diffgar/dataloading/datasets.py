@@ -151,17 +151,21 @@ class TextAudioDataset(Dataset):
         print(f"Extracting features with {extract_method} method on {device} device") if verbose else None
         
         for i in range(len(self)):
-            item = self.__getitem__(i, return_full_audio = return_full_audio, hop = hop, verbose = verbose)
-            file_path = self.annotations[i]['file_path'].replace('.mp3','.npy').replace('.wav','.npy')
-            
-            audio = item['audio'].squeeze().to(device)
-            
-            
-            audio_features = getattr(model, extract_method)(audio, **extract_kwargs)[out_key]
-            
-            print(f"Extracted features for {file_path}, shape: {audio_features.shape}") if verbose else None
-            
-            yield audio_features, file_path
+            try:
+                item = self.__getitem__(i, return_full_audio = return_full_audio, hop = hop, verbose = verbose)
+                file_path = self.annotations[i]['file_path'].replace('.mp3','.npy').replace('.wav','.npy')
+                
+                audio = item['audio'].squeeze().to(device)
+                
+                
+                audio_features = getattr(model, extract_method)(audio, **extract_kwargs)[out_key]
+                
+                print(f"Extracted features for {file_path}, shape: {audio_features.shape}") if verbose else None
+                
+                yield audio_features, file_path
+            except Exception as e:
+                print(f"Error extracting features for {file_path}: {e}") if verbose else None
+                yield None, ''
         
     def extract_and_save_features(self, model, save_dir = None, extract_method = 'extract_features', extract_kwargs = {}, out_key = 'embedding', hop = None, return_full_audio = True, limit_n = None, save = False, verbose = True, root_path = None):
         
@@ -188,7 +192,7 @@ class TextAudioDataset(Dataset):
 
             save_path = os.path.join(save_dir, file_path)
             
-            if save:
+            if save and audio_features is not None:
                 
 
                 #remove the root path from the file path
@@ -223,7 +227,7 @@ class TextAudioDataset(Dataset):
                 
                 
                 
-            audio_features_all.append(audio_features.detach().cpu())
+            audio_features_all.append(audio_features.detach().cpu()) if audio_features is not None else None
             
             counter += 1
             if limit_n and counter >= limit_n:

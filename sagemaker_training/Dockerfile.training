@@ -89,10 +89,6 @@ RUN apt-get update && apt-get install -y libsndfile1 libmpg123-0 ffmpeg
 
 RUN apt-get update && apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio -y
 
-# # Copy project code
-COPY ./diffgar $LOCAL_DIR/diffgar
-COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
-COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
 
 RUN pip install soxr
 
@@ -100,3 +96,9 @@ RUN pip uninstall soundfile -y
 RUN pip install --upgrade soundfile
 
 # # Install AWS CLI
+
+# # Copy project code
+COPY ./diffgar $LOCAL_DIR/diffgar
+COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
+COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
+
