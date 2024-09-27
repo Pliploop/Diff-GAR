@@ -14,8 +14,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --fix-missing --n
         unzip \
         jq \
         git \
-        wget \
-        # s3fs && \
+        wget && \
     rm -rf /var/lib/apt/lists/*
 
 # # Install Conda if it's not already installed
@@ -57,7 +56,8 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     rm -rf awscliv2.zip aws
 
 # get aws credentials from secrets
-RUN apt-get install -y libsndfile1
+RUN apt-get update && apt-get install -y libsndfile1
+# RUN apt-get update && apt-get install -y s3fs
 
 # # Copy SageMaker training script
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
