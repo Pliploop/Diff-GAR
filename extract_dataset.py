@@ -57,8 +57,6 @@ if __name__ == "__main__":
     cli = MyLightningCLI(model_class=LightningDiffGar, datamodule_class=TextAudioDataModule, seed_everything_default=123,
                         run=False, save_config_callback=LoggerSaveConfigCallback, save_config_kwargs={"overwrite": True},trainer_defaults=MyLightningCLI.trainer_defaults)
 
-
-
     # except:
     #     if "--config" in sys.argv:
     #         if 's3://' in sys.argv[sys.argv.index("--config")+1]:

@@ -53,13 +53,14 @@ model:
 data:
   task: 'song_describer'
   task_kwargs:
-    data_path: /opt/ml/processing/input/audio
+    data_path: /opt/ml/processing/input
+    csv_path: s3://maml-aimcdt/datasets/song-describer/data/song_describer.csv
   preextracted_features: false
   truncate_preextracted: 64
   batch_size: 32
   num_workers: 4
-save_dir: /opt/ml/processing/output/npy
-root_path: /opt/ml/processing/input/audio
+save_dir: /opt/ml/processing/output
+root_path: /opt/ml/processing/input
 extract_method: get_audio_embedding_from_data
 out_key: embedding_proj
 hop: 48000
