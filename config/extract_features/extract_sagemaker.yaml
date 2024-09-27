@@ -59,7 +59,7 @@ data:
   truncate_preextracted: 64
   batch_size: 32
   num_workers: 4
-save_dir: /opt/ml/processing/output
+save_dir: /opt/ml/processing/output/npy/1hz
 root_path: /opt/ml/processing/input
 extract_method: get_audio_embedding_from_data
 out_key: embedding_proj

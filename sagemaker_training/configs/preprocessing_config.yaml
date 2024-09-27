@@ -6,7 +6,7 @@ processing_inputs:
     input_name: audio
     destination: /opt/ml/processing/input
 processing_outputs:
-  - destination: s3://maml-aimcdt/datasets/song-describer/data/npy/1hz/
+  - destination: s3://maml-aimcdt/datasets/song-describer/data/
     output_name: npy
     source: /opt/ml/processing/output
 processor:
