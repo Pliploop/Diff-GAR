@@ -77,4 +77,9 @@ ENV TOKENIZERS_PARALLELISM=false
 WORKDIR $LOCAL_DIR
 
 
+RUN pip uninstall s3fs -y
+RUN pip install --upgrade aiobotocore boto3
+RUN pip install s3fs
+
+
 # # Install AWS CLI

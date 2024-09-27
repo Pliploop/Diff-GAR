@@ -39,13 +39,13 @@
 a-unet==0.0.16
 absl-py==2.0.0
 aiofiles==23.2.1
-# aiobotocore
-# aiohttp
-# aiohappyeyeballs
-# aioitertools
-# aiosignal
-# multidict
-# yarl
+aiobotocore
+aiohttp
+aiohappyeyeballs
+aioitertools
+aiosignal
+multidict
+yarl
 altair==5.1.2
 antlr4-python3-runtime==4.9.3
 appdirs==1.4.4
@@ -238,8 +238,8 @@ yarg==0.1.9
 typing-extensions
 python-dateutil
 torchlibrosa==0.1.0
-# jmespath
-# sniffio
+jmespath
+sniffio
 # s3fs
-# async-timeout
+async-timeout
 
