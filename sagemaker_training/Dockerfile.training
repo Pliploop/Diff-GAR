@@ -50,8 +50,14 @@ RUN --mount=type=secret,id=github_token \
     export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
     pip install --no-cache-dir --no-dependencies -r $LOCAL_DIR/$REQ
 
-RUN apt-get update && apt-get install -y libsndfile1
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip aws
 
+# get aws credentials from secrets
+RUN apt-get update && apt-get install -y libsndfile1
+# RUN apt-get update && apt-get install -y s3fs
 
 # # Copy SageMaker training script
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
@@ -69,3 +75,6 @@ ENV TOKENIZERS_PARALLELISM=false
 
 # # Set working directory
 WORKDIR $LOCAL_DIR
+
+
+# # Install AWS CLI

@@ -48,11 +48,33 @@ class MyLightningCLI(LightningCLI):
 
 if __name__ == "__main__":
 
+    #intercept the --config argument before it reaches the parser (for sagemaker)
+    import sys
+
+    try:    
+
+        cli = MyLightningCLI(model_class=LightningDiffGar, datamodule_class=TextAudioDataModule, seed_everything_default=123,
+                            run=False, save_config_callback=LoggerSaveConfigCallback, save_config_kwargs={"overwrite": True},trainer_defaults=MyLightningCLI.trainer_defaults)
+
+    except:
+        if "--config" in sys.argv:
+            if 's3://' in sys.argv[sys.argv.index("--config")+1]:
+                import boto3
+                import io
+                client = boto3.client('s3')
+                bucket, key = sys.argv[sys.argv.index("--config")+1].replace("s3://", "").split("/", 1)
+                ## download the config file
+                client.download_file(bucket, key, "preprocessing_config.yaml")
+                sys.argv[sys.argv.index("--config")+1] = "preprocessing_config.yaml"
+
+        cli = MyLightningCLI(model_class=LightningDiffGar, datamodule_class=TextAudioDataModule, seed_everything_default=123,
+                            run=False, save_config_callback=LoggerSaveConfigCallback, save_config_kwargs={"overwrite": True},trainer_defaults=MyLightningCLI.trainer_defaults)
+
+
+        os.remove("preprocessing_config.yaml")
 
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
     
-    cli = MyLightningCLI(model_class=LightningDiffGar, datamodule_class=TextAudioDataModule, seed_everything_default=123,
-                         run=False, save_config_callback=LoggerSaveConfigCallback, save_config_kwargs={"overwrite": True},trainer_defaults=MyLightningCLI.trainer_defaults)
     
     
     dm = cli.datamodule
@@ -61,11 +83,6 @@ if __name__ == "__main__":
     dm.setup(None)
     ldm.encoder_pair.to(cli.config['device'])
     
-    
-    ## create the save dir if it does not exist, and save the config. Also, take into account that the save dir might be a s3 path
-    
-    
-    ##add extracted_at with a timestamp in the cli config
     cli.config['extracted_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     
