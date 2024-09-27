@@ -2,6 +2,7 @@ import torchaudio
 import soundfile as sf
 import numpy as np
 import torch
+import librosa
 
 def load_audio_chunk(path, target_n_samples, target_sr, start = None, verbose = False):
     # info = sf.info(path)
@@ -41,7 +42,11 @@ def load_audio_chunk(path, target_n_samples, target_sr, start = None, verbose = 
     return audio
 
 def load_full_audio(path, target_sr, verbose = False):
-    audio, sr = sf.read(path, always_2d=True, dtype='float32')
+    try:
+        audio, sr = sf.read(path, always_2d=True, dtype='float32')
+    except:
+        audio, sr = librosa.load(path, sr=None)
+    # audio, sr = torchaudio.load(path, backend='soundfile')
     # if the audio file is stereo, mean that dimension inplace
     
     print(f'length of audio in seconds: {audio.shape[0]/sr}') if verbose else None

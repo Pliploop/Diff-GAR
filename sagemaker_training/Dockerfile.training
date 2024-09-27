@@ -56,16 +56,19 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     rm -rf awscliv2.zip aws
 
 # get aws credentials from secrets
-RUN apt-get update && apt-get install -y libsndfile1
-# RUN apt-get update && apt-get install -y s3fs
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    dpkg-reconfigure --frontend noninteractive tzdata
+
 
 # # Copy SageMaker training script
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
 
-# # Copy project code
-COPY ./diffgar $LOCAL_DIR/diffgar
-COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
-COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
 
 # # Make 'train' script callable directly from the command line
 ENV PATH="$PATH:$LOCAL_DIR"
@@ -81,5 +84,19 @@ RUN pip uninstall s3fs -y
 RUN pip install --upgrade aiobotocore boto3
 RUN pip install s3fs
 
+
+RUN apt-get update && apt-get install -y libsndfile1 libmpg123-0 ffmpeg 
+
+RUN apt-get update && apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio -y
+
+# # Copy project code
+COPY ./diffgar $LOCAL_DIR/diffgar
+COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
+COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
+
+RUN pip install soxr
+
+RUN pip uninstall soundfile -y
+RUN pip install --upgrade soundfile
 
 # # Install AWS CLI
