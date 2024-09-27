@@ -56,9 +56,9 @@ def launch_sagemaker_processing(cfg: dict):
     # RUN!
     logging.info("Start the processing!")
     # fmt: off
-    arguments = [
-        "--input_dir", os.path.commonpath([i.destination for i in inputs]),
-        "--output_dir", os.path.commonpath([o.source for o in outputs]),
-        *cfg.get("additional_run_arguments", []),
-    ]  # fmt:on
-    processor.run(arguments=arguments, inputs=inputs, outputs=outputs, logs='All')
+    # arguments = [
+    #     "--input_dir", os.path.commonpath([i.destination for i in inputs]),
+    #     "--output_dir", os.path.commonpath([o.source for o in outputs]),
+    #     *cfg.get("additional_run_arguments", []),
+    # ]  # fmt:on
+    processor.run(inputs=inputs, outputs=outputs, logs='All')
