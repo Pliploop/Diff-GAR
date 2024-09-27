@@ -49,6 +49,18 @@ class MyLightningCLI(LightningCLI):
 
 if __name__ == "__main__":
 
+    #intercept the --config argument before it reaches the parser
+    import sys
+    if "--config" in sys.argv:
+        if 's3://' in sys.argv[sys.argv.index("--config")+1]:
+            import boto3
+            import io
+            client = boto3.client('s3')
+            bucket, key = sys.argv[sys.argv.index("--config")+1].replace("s3://", "").split("/", 1)
+            ## download the config file
+            client.download_file(bucket, key)
+            sys.argv[sys.argv.index("--config")+1] = "preprocessing_config.yaml"
+
 
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
     
