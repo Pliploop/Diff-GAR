@@ -65,8 +65,11 @@ class MyLightningCLI(LightningCLI):
 
 if __name__ == "__main__":
 
+
     cli = MyLightningCLI(model_class=LightningDiffGar, datamodule_class=TextAudioDataModule, seed_everything_default=123,
                          run=False, save_config_callback=LoggerSaveConfigCallback, save_config_kwargs={"overwrite": True},trainer_defaults=MyLightningCLI.trainer_defaults)
+
+
 
     if cli.config.log:
         logger = WandbLogger(project=cli.config.project, id=cli.config.resume_id)
