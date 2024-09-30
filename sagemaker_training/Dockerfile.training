@@ -17,33 +17,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --fix-missing --n
         wget && \
     rm -rf /var/lib/apt/lists/*
 
-# # Install Conda if it's not already installed
-# # RUN if [ ! -d "/opt/conda" ]; then \
-# #         wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-# #         bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
-# #         rm Miniconda3-latest-Linux-x86_64.sh && \
-# #         /opt/conda/bin/conda clean -tipsy; \
-# #     else \
-# #         echo "Conda is already installed"; \
-# #     fi
-
-# # # Set Conda in the path
-# ENV PATH /opt/conda/bin:$PATH
-
-# # # Create Conda environment with Python 3.9
-# # RUN /opt/conda/bin/conda create -n diffgar python=3.9.18 -y
-
-# # # Use the Conda environment for subsequent commands
-# # SHELL ["conda", "run", "-n", "diffgar", "/bin/bash", "-c"]
-
-
-# #switch the base conda environment to python 3.9.18
-# RUN conda install python=3.9.18 -y
-
-# # Install pip in the environment
-# RUN conda install -c conda-forge pip -y
-
-# # Copy the requirements and install dependencies with pip
 ARG REQ=requirements.txt
 COPY ./$REQ $LOCAL_DIR/$REQ
 RUN --mount=type=secret,id=github_token \
@@ -70,13 +43,10 @@ RUN apt-get update && \
 COPY --chmod=777 ./sagemaker_training/train $LOCAL_DIR/
 
 
-# # Make 'train' script callable directly from the command line
 ENV PATH="$PATH:$LOCAL_DIR"
 
-# # Disable tokenizers parallelism for compatibility
 ENV TOKENIZERS_PARALLELISM=false
 
-# # Set working directory
 WORKDIR $LOCAL_DIR
 
 
@@ -102,3 +72,10 @@ COPY ./diffgar $LOCAL_DIR/diffgar
 COPY ./train_ldm.py $LOCAL_DIR/train_ldm.py
 COPY ./extract_dataset.py $LOCAL_DIR/extract_dataset.py
 
+## mount secrets from .secrets folder and get the wandb api key
+
+
+
+RUN --mount=type=secret,id=wandb_api_key \
+    export WANDB_API_KEY=$(cat /run/secrets/wandb_api_key) && \
+    wandb login $WANDB_API_KEY

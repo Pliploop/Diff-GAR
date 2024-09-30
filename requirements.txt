@@ -242,4 +242,5 @@ jmespath
 sniffio
 # s3fs
 async-timeout
+docker-pycreds
 

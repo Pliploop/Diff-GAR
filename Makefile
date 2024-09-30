@@ -4,6 +4,7 @@ TAG_TRAINING := 427750820708.dkr.ecr.us-east-1.amazonaws.com/diffgar/training
 build-train:  ## Build the Docker image to train on AWS
 	docker build \
 	    --secret id=github_token,src=.secrets/github_token \
+		--secret id=wandb_api_key,src=.secrets/wandb_api_key \
 	    --platform linux/amd64 \
 	    --file sagemaker_training/Dockerfile.training \
 	    --tag ${TAG_TRAINING} \
