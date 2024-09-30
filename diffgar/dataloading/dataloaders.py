@@ -41,6 +41,23 @@ def get_song_describer_annotations(data_path = None, csv_path = None, val_split 
         records[idx]['split'] = 'val'
     
     return records
+
+
+def get_upmm_annotations(data_path = None, csv_path = None):
+    
+    data_path = data_path if data_path is not None else '/import/research_c4dm/jpmg86/upmm/data/audio'
+    csv_path = os.path.join(os.path.dirname(data_path), 'upmm_captions.csv') if csv_path is None else csv_path
+    
+    df = pd.read_csv(csv_path)
+    
+    df['file_path'] = os.path.join(data_path) + '/' + df['file_path']
+    
+    records = df.to_dict(orient = 'records')
+    
+    for record in records:
+        record['caption'] = {sha256(record['caption'].encode('utf-8')).hexdigest(): record['caption']}
+    
+    return records
     
 
 class TextAudioDataModule(LightningDataModule):
