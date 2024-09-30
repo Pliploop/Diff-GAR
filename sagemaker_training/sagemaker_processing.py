@@ -61,4 +61,16 @@ def launch_sagemaker_processing(cfg: dict):
     #     "--output_dir", os.path.commonpath([o.source for o in outputs]),
     #     *cfg.get("additional_run_arguments", []),
     # ]  # fmt:on
+    
+    
+    #time this
+    
+    from time import time
+    
+    start = time()
+    
     processor.run(inputs=inputs, outputs=outputs, logs='All')
+    
+    formatted_time = time() - start
+    
+    print(f"Time taken to run the processor: {formatted_time}")

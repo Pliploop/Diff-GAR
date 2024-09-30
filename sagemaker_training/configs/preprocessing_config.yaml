@@ -2,18 +2,18 @@
 base_name: diffgar-extract
 pull_config: s3://maml-aimcdt/storage/julien/DiffGAR/training_configs/preprocessing_config.yaml
 processing_inputs:
-  - source: s3://maml-aimcdt/datasets/upmm/upmm_small/audio/
+  - source: s3://maml-ilaria/datasets/uppm_descriptions/audio/
     input_name: audio
     destination: /opt/ml/processing/input
 processing_outputs:
-  - destination: s3://maml-aimcdt/datasets/upmm/upmm_small
+  - destination: s3://maml-aimcdt/datasets/upmm/
     output_name: npy
     source: /opt/ml/processing/output
 processor:
   image_uri: 427750820708.dkr.ecr.us-east-1.amazonaws.com/diffgar/training:latest
-  instance_count: 5
+  instance_count: 10
   instance_type: ml.g5.xlarge
-  volume_size_in_gb: 5
+  volume_size_in_gb: 200
   entrypoint: [python, -m, extract_dataset, --config, s3://maml-aimcdt/storage/julien/DiffGAR/training_configs/preprocessing_config.yaml]
   tags:
     - Key: Project

@@ -81,6 +81,6 @@ if __name__ == "__main__":
     except NoCredentialsError:
         print("No AWS credentials found. Please set up your AWS credentials.")
     
-    # launch_sagemaker_training(cfg)
+    launch_sagemaker_training(cfg)
     
     
